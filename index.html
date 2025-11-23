@@ -1,139 +1,116 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html>
+<head>
+    <title>Peta Web Sleman</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- leaflet css link  -->
-    <link rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-    />
-
-    <title>Web-GIS with Geoserver and Leaflet</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-       #map {
-    height: 100vh;   /* penuh satu layar */
-    width: 100%;
-}
-        /* Panel legenda besar */
-        .big-legend {
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Peta full screen */
+        #map {
             position: absolute;
-            bottom: 10px;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Legend mengambang di atas peta */
+        #bigLegend {
+            position: absolute;
+            top: 10px;
             left: 10px;
             background: white;
             padding: 10px;
-            border-radius: 6px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            border-radius: 8px;
+            line-height: 18px;
+            color: #333;
+            box-shadow: 0 0 8px rgba(0,0,0,0.3);
             z-index: 9999;
-            font-size: 13px;
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
         }
-        .big-legend img {
-            border: 1px solid #ccc;
-            display: block;
-            margin-bottom: 8px;
-            max-width: 220px;
-        }
-
-        /* Pastikan kontrol layer tetap tampil di atas basemap */
-        .leaflet-control-layers {
-            z-index: 10000;
-        }
     </style>
-  </head>
+</head>
+<body>
 
-  <body>
-    <div id="map"></div>
+<div id="map"></div>
 
-    <!-- Panel legenda -->
-<div class="big-legend" id="bigLegend">
+<!-- Legend -->
+<div id="bigLegend">
     <h4>Legenda</h4>
-    <!-- Legenda Administrasi Desa (warna kecamatan dari SLD/Style GeoServer) -->
-    <div id="legend-admin">
-        <strong>Administrasi Desa</strong><br>
-        <img src="http://localhost:8080/geoserver/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&LAYER=pgwebAcara10:ADMINISTRASIDESA_AR_25K">
-    </div>
+    <strong>Administrasi Desa</strong><br>
+    <img src="http://localhost:8080/geoserver/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&LAYER=pgwebAcara10:ADMINISTRASIDESA_AR_25K">
+</div>
 
-    <!-- leaflet js link  -->
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script>
+    var map = L.map('map').setView([-7.677567, 110.406893], 12);
 
-    <script>
-      // ===============================
-      // MAP DASAR
-      // ===============================
-      var map = L.map("map").setView([-7.732521, 110.402376], 11);
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(map);
 
-      var osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "© OpenStreetMap contributors",
-      }).addTo(map);
+    var polygonLayer = L.tileLayer.wms("http://localhost:8080/geoserver/pgwebAcara10/wms", {
+        layers: "pgwebAcara10:ADMINISTRASIDESA_AR_25K",
+        format: "image/png",
+        transparent: true
+    }).addTo(map);
 
-      // ===============================
-      // LAYER WMS DARI GEOSERVER
-      // ===============================
+    var jalanLayer = L.tileLayer.wms("http://localhost:8080/geoserver/pgwebAcara10/wms", {
+        layers: "pgwebAcara10:JALAN_LN_25K",
+        format: "image/png",
+        transparent: true
+    }).addTo(map);
 
-      // 1. ADMINISTRASIDESA_AR_25K
-      var desa = L.tileLayer.wms(
-        "http://localhost:8080/geoserver/pgwebAcara10/wms",
-        {
-          layers: "pgwebAcara10:ADMINISTRASIDESA_AR_25K",
-          format: "image/png",
-          transparent: true
-        }
-      ).addTo(map);
+    var pointLayer = L.tileLayer.wms("http://localhost:8080/geoserver/pgwebAcara10/wms", {
+        layers: "pgwebAcara10:data_kecamatan",
+        format: "image/png",
+        transparent: true
+    }).addTo(map);
 
-      // 2. JALAN_LN_25K
-      var jalan = L.tileLayer.wms(
-        "http://localhost:8080/geoserver/pgwebAcara10/wms",
-        {
-          layers: "pgwebAcara10:JALAN_LN_25K",
-          format: "image/png",
-          transparent: true
-        }
-      ).addTo(map);
-
-      // 3. data_kecamatan
-      var kecamatan = L.tileLayer.wms(
-        "http://localhost:8080/geoserver/pgwebAcara10/wms",
-        {
-          layers: "pgwebAcara10:data_kecamatan",
-          format: "image/png",
-          transparent: true
-        }
-      ).addTo(map);
-
-      
-
-      // ===============================
-      // LAYER CONTROL
-      // ===============================
-      var overlayLayers = {
-        "Administrasi Desa (AR_25K)": desa,
-        "Jalan 25K": jalan,
-        "Data Kecamatan": kecamatan
-      };
-
-      L.control.layers(null, overlayLayers).addTo(map);
-
-      function toggleLegendVisibility() {
-        var legendEl = document.getElementById('bigLegend');
-        // contohnya: sembunyikan legend jika semua overlay dimatikan
-        var anyOn = map.hasLayer(batasDesa);
-        legendEl.style.display = anyOn ? 'block' : 'none';
-    }
-
-    // panggil sekali saat load
-    toggleLegendVisibility();
-
-    // listen perubahan layer
-    map.on('overlayadd overlayremove', function() {
-        toggleLegendVisibility();
+    var sampahLayer = L.tileLayer.wms("https://geoportal.slemankab.go.id/geoserver/ows", {
+        layers: "geonode:persebaran_titik_persampahan_slemanbce6c1f573f3",
+        format: "image/png",
+        transparent: true
     });
 
+    var baseMaps = { "OpenStreetMap": osm };
 
-    </script>
-  </body>
+    var overlayMaps = {
+        "Polygon Administrasi": polygonLayer,
+        "Jalan": jalanLayer,
+        "Penduduk (Titik)": pointLayer,
+        "Sebaran TPA": sampahLayer
+    };
+
+    L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+    // Legend tampil/hilang
+    function toggleLegendVisibility() {
+        var anyOn = false;
+        for (var key in overlayMaps) {
+            if (map.hasLayer(overlayMaps[key])) {
+                anyOn = true;
+                break;
+            }
+        }
+        document.getElementById('bigLegend').style.display = anyOn ? 'block' : 'none';
+    }
+
+    toggleLegendVisibility();
+    map.on('overlayadd overlayremove', toggleLegendVisibility);
+</script>
+
+</body>
 </html>
